@@ -1,18 +1,42 @@
 import os
-import uuid
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ConversationHandler, MessageHandler, filters, ContextTypes
-import logging
+import threading
+from flask import Flask
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+# ==============================
+# Telegram Bot Setup
+# ==============================
 
-contracts = {}
-STOP1, STOP2, ROUTE, FINAL_DEST, NOTES, PARTICIPANTS = range(6)
+TOKEN = os.getenv("BOT_TOKEN")
 
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
-app = ApplicationBuilder().token(BOT_TOKEN).build()
+if not TOKEN:
+    raise ValueError("No BOT_TOKEN found in environment variables")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Welcome to FriendMeet Bot! 🤝\n\nCommands:\n/new_meetup - Create a new meetup")
+    await update.message.reply_text("👋 Welcome to MeetContractBot!")
 
-# (Rest of the bot code continues here — full conversation handlers, button handling, etc.)
+application = ApplicationBuilder().token(TOKEN).build()
+application.add_handler(CommandHandler("start", start))
+
+# ==============================
+# Flask Web Server (for Render)
+# ==============================
+
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "Bot is running!"
+
+def run_web():
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
+
+# ==============================
+# Run Both Together
+# ==============================
+
+if __name__ == "__main__":
+    threading.Thread(target=run_web).start()
+    application.run_polling()
