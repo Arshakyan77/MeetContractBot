@@ -4,12 +4,11 @@ from flask import Flask
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
-# ==============================
+# ------------------------------
 # Telegram Bot Setup
-# ==============================
+# ------------------------------
 
 TOKEN = os.getenv("BOT_TOKEN")
-
 if not TOKEN:
     raise ValueError("No BOT_TOKEN found in environment variables")
 
@@ -19,9 +18,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 application = ApplicationBuilder().token(TOKEN).build()
 application.add_handler(CommandHandler("start", start))
 
-# ==============================
-# Flask Web Server (for Render)
-# ==============================
+# ------------------------------
+# Run Telegram Bot in Background
+# ------------------------------
+
+def run_bot():
+    application.run_polling()
+
+threading.Thread(target=run_bot).start()
+
+# ------------------------------
+# Flask Web Server (Main Thread)
+# ------------------------------
 
 app = Flask(__name__)
 
@@ -29,14 +37,6 @@ app = Flask(__name__)
 def home():
     return "Bot is running!"
 
-def run_web():
+if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
-
-# ==============================
-# Run Both Together
-# ==============================
-
-if __name__ == "__main__":
-    threading.Thread(target=run_web).start()
-    application.run_polling()
